@@ -24,8 +24,7 @@ from io_utils import model_dict, parse_args, get_resume_file, get_best_file , ge
 
 def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
     class_list = cl_data_file.keys()
-
-    select_class = random.sample(class_list,n_way)
+    select_class = random.sample(class_list, n_way)
     z_all  = []
     for cl in select_class:
         img_feat = cl_data_file[cl]
@@ -36,9 +35,9 @@ def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 
    
     model.n_query = n_query
     if adaptation:
-        scores  = model.set_forward_adaptation(z_all, is_feature = True)
+        scores  = model.set_forward_adaptation(z_all, select_class, len(class_list), is_feature = True)
     else:
-        scores  = model.set_forward(z_all, is_feature = True)
+        scores  = model.set_forward(z_all, select_class, len(class_list), is_feature = True)
     
     acc = []
     for each_score in scores:
@@ -47,28 +46,25 @@ def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 
         acc.append(np.mean(pred == y)*100 )
     return acc
 
-
-
 if __name__ == '__main__':
     params = parse_args('test')
 
     acc_all = []
 
-    if params.dataset == 'CUB':
-        iter_num = 600
-    else:
-        iter_num = 10000
+    n_query = 15
+    iter_num = 10000
 
     few_shot_params = dict(n_way = params.test_n_way , n_support = params.n_shot) 
+    feature_dir = '%s/features/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
+    if params.dataset == 'cross':
+        params.dataset = 'CUB'
 
-
-    model = BaselineFinetune( model_dict[params.model], **few_shot_params )
+    tc = np.load('filelists/%s/tc.npy' %(params.dataset))
+    dist = np.load('filelists/%s/dist.npy' %(params.dataset))
+    model = BaselineFinetune( model_dict[params.model], params.dataset, tc, **few_shot_params )
 
     if torch.cuda.is_available():
         model = model.cuda()
-
-    checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
-
 
     split = params.split
     if params.save_iter != -1:
@@ -76,15 +72,10 @@ if __name__ == '__main__':
     else:
         split_str = split
 
-    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features"), split_str +".hdf5") 
+    novel_file = os.path.join( feature_dir, split_str +".hdf5") 
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
-
-    if params.dataset == 'CUB':
-        n_query = 15
-    else:
-        n_query = 600 - params.n_shot
 
     print(novel_file)
     print("evaluating over %d examples"%(n_query))
@@ -96,7 +87,7 @@ if __name__ == '__main__':
         acc_all2.append(acc[1])
         acc_all3.append(acc[2])
         print("%d steps reached and the mean acc is %g , %g , %g"%(i, np.mean(np.array(acc_all1)),np.mean(np.array(acc_all2)),np.mean(np.array(acc_all3)) ))
-#         acc_all  = np.asarray(acc_all)
+
     acc_mean1 = np.mean(acc_all1)
     acc_mean2 = np.mean(acc_all2)
     acc_mean3 = np.mean(acc_all3)

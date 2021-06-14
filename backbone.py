@@ -43,6 +43,103 @@ class distLinear(nn.Module):
 
         return scores
 
+class PT(nn.Module):
+    def __init__(self):
+        super(PT, self).__init__()
+        self.beta = nn.Parameter(torch.zeros(1))
+        self.sig = nn.Sigmoid()
+        self.sp = nn.Softplus()
+
+    def forward(self, x):
+        x = self.sp(x) ** self.sig(self.beta[0])
+        x = x / (x**2).sum(1, keepdim=True).sqrt()
+        #x_min = x[:,:x.shape[1]//2]
+        #x_min = x_min - x_min.mean(0)
+        #x[:,:x.shape[1]//2] = x_min / (x_min**2).sum(1, keepdim=True).sqrt()
+        return x
+
+class BoxEmbs(nn.Module):
+    def __init__(self, indim, typedim, classlist):
+        super(BoxEmbs, self).__init__()
+        boxdim = 128
+        self.pt_img, self.pt_type = PT(), PT()
+
+        self.fc = nn.Linear(indim, boxdim * 2)
+        self.img_scale = nn.Parameter(torch.rand(indim) - 0.5)
+        self.type_emb = nn.Parameter(torch.rand(typedim, boxdim * 2).cuda() - 0.5)
+        self.classes = classlist
+        self.scale = nn.Parameter(torch.ones(1))
+        self.gumbel_beta = nn.Parameter(torch.zeros(1))
+        self.penalty = nn.Parameter(torch.zeros(1))
+
+        self.sig = nn.Sigmoid()
+        self.sp = nn.Softplus()
+        self.small = 1e-10
+
+    def forward(self, x):
+        mins, deltas = self.pt_img(torch.cat([self.fc(x),self.type_emb], 0)).chunk(2,1)
+        #mins, deltas = torch.cat([self.fc(x),self.type_emb], 0).chunk(2,1)
+        #mins, deltas = self.pt_img(mins), self.pt_type(deltas)
+        mins = mins - mins.mean(0)
+        mins = mins / (mins ** 2).sum(1, keepdim=True).sqrt()
+                
+        x_min, type_min = mins[:x.shape[0]], mins[x.shape[0]:]
+        x_delta, type_delta = deltas[:x.shape[0]], deltas[x.shape[0]:]
+        x_max = x_min + x_delta
+        type_max = type_min + type_delta
+        
+        usegumbel = False
+        if usegumbel:
+            scale = self.scale[0]
+            euler_gamma = 0.57721566490153286060
+            gumbel_beta = self.sp(self.gumbel_beta[0])
+            eps = torch.finfo(x_min.dtype).tiny
+            
+            x_type_min = torch.stack([x_min] * type_min.shape[0], 1).unsqueeze(3)
+            x_type_max = torch.stack([x_max] * type_max.shape[0], 1).unsqueeze(3)
+            type_x_min = torch.stack([type_min] * x_min.shape[0], 0).unsqueeze(3)
+            type_x_max = torch.stack([type_max] * x_max.shape[0], 0).unsqueeze(3)
+            
+            I_min = gumbel_beta * torch.logsumexp(torch.cat((x_type_min / gumbel_beta, type_x_min / gumbel_beta),3),3)
+
+            I_max = -gumbel_beta * torch.logsumexp(torch.cat((-x_type_max / gumbel_beta, -type_x_max / gumbel_beta),3),3)
+            
+            I_delta = I_max - I_min
+            x_type_vol = self.sp(I_delta - 2*euler_gamma*gumbel_beta).log().sum(2)
+            x_vol = self.sp(x_delta - 2*euler_gamma*gumbel_beta).log().sum(1, keepdim=True)
+
+            type_type_min = torch.stack([type_min] * type_min.shape[0], 1).unsqueeze(3)
+            type_type_max = torch.stack([type_max] * type_max.shape[0], 1).unsqueeze(3)
+            type_typeT_min = torch.stack([type_min] * type_min.shape[0], 0).unsqueeze(3)
+            type_typeT_max = torch.stack([type_max] * type_max.shape[0], 0).unsqueeze(3)
+            
+            I_min = gumbel_beta * torch.logsumexp(torch.stack((type_type_min / gumbel_beta, type_typeT_min / gumbel_beta)),0)
+
+            I_max = - gumbel_beta * torch.logsumexp(torch.stack((-type_type_max / gumbel_beta, -type_typeT_max / gumbel_beta)),0)
+            
+            I_delta = I_max - I_min
+            type_type_vol = self.sp(I_delta - 2*euler_gamma*gumbel_beta).log().sum(2).squeeze(2)
+            type_vol = self.sp(type_delta - 2*euler_gamma*gumbel_beta).log().sum(1, keepdim=True)
+
+        else:
+            x_vol = (self.sp(x_delta)+self.small).log().sum(1, keepdim=True)
+            type_vol = (self.sp(type_delta)+self.small).log().sum(1, keepdim=True)
+
+            x_type_min = torch.max(x_min.unsqueeze(1), type_min)
+            x_type_max = torch.min(x_max.unsqueeze(1), type_max)
+            x_type_delta = x_type_max - x_type_min
+            x_type_vol = (self.sp(x_type_delta) + self.small).log().sum(2)
+
+            type_type_min = torch.max(type_min.unsqueeze(1), type_min)
+            type_type_max = torch.min(type_max.unsqueeze(1), type_max)
+            type_type_delta = type_type_max - type_type_min
+            type_type_vol = (self.sp(type_type_delta) + self.small).log().sum(2)
+
+        cls_probs = x_type_vol - x_vol - type_vol.T * self.sig(self.penalty)
+        cls_probs = cls_probs[:,self.classes]
+        trans_closure_approx = type_type_vol - type_vol
+        return cls_probs, trans_closure_approx
+
 class Flatten(nn.Module):
     def __init__(self):
         super(Flatten, self).__init__()
