@@ -1,0 +1,85 @@
+{
+    "Sooty_Albatross": {},
+    "Parakeet_Auklet": {},
+	"Icterid":{
+		"Rusty_Blackbird": {},
+		"Baltimore_Oriole": {},
+		"Shiny_Cowbird":{}
+	},
+    "Cardinalidae": {
+        "Lazuli_Bunting": {},
+		"Evening_Grosbeak": {}
+	},
+	"Mimidae": {
+		"Gray_Catbird": {},
+		"Mockingbird": {}
+    },
+	"Brandt_Cormorant": {},
+    "Corvidae":{
+		"Common_Raven": {},
+		"Green_Jay": {}
+	},
+    "Black_billed_Cuckoo": {},
+    "Tanager": {
+        "Scarlet_Tanager": {},
+        "Finch": {
+			"Purple_Finch": {},
+			"American_Goldfinch": {}
+		}
+	},
+    "Flycatcher": {
+        "Least_Flycatcher": {},
+        "Yellow_bellied_Flycatcher": {},
+		"Sayornis": {}
+    },
+	"Horned_Grebe": {},
+    "Laridae":{
+		"Gull": {
+			"California_Gull": {},
+			"Ivory_Gull": {}
+		},
+		"Tern": {
+			"Caspian_Tern": {},
+			"Least_Tern": {}
+		}
+	},
+    "Anna_Hummingbird": {},
+    "Long_tailed_Jaeger": {},
+    "Kingfisher": {
+        "Belted_Kingfisher": {},
+        "White_breasted_Kingfisher": {}
+    },
+	"Bank_Swallow": {},
+	"Mallard": {},
+	"Ovenbird": {},
+    "Loggerhead_Shrike": {},
+    "Sparrow": {
+        "Brewer_Sparrow": {},
+        "Field_Sparrow": {},
+        "Henslow_Sparrow": {},
+        "Savannah_Sparrow": {},
+        "Vesper_Sparrow": {}
+    },
+    "Vireo": {
+        "Black_capped_Vireo": {},
+        "Warbling_Vireo": {}
+    },
+    "Warbler": {
+        "Black_and_white_Warbler": {},
+        "Cape_May_Warbler": {},
+        "Hooded_Warbler": {},
+        "Myrtle_Warbler": {},
+        "Pine_Warbler": {},
+        "Tennessee_Warbler": {},
+        "Common_Yellowthroat": {},
+		"Northern_Waterthrush": {}
+	},
+    "Picidae":{
+		"American_Three_toed_Woodpecker": {},
+		"Red_headed_Woodpecker": {}
+	},
+    "Wren": {
+        "Carolina_Wren": {},
+        "Winter_Wren": {}
+    }
+}

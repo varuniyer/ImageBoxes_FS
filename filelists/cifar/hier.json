@@ -1,0 +1,34 @@
+{
+	"person":{
+		"baby":{},
+		"adult":{
+			"woman":{},
+			"man":{}
+		}
+	},
+	"vehicle":{
+		"bicycle":{},
+		"rocket":{},
+		"pickup_truck":{}
+	},
+	"animal":{
+		"chimpanzee":{},
+		"fox":{},
+		"leopard":{},
+		"snail":{},
+		"whale":{},
+		"worm":{}
+	},
+	"household_object":{
+		"bed":{},
+		"table":{},
+		"telephone":{},
+		"wardrobe":{}
+	},
+	"plain":{},
+	"sweet_pepper":{},
+	"flower":{
+		"poppy":{},
+		"rose":{}
+	}
+}

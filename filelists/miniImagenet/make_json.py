@@ -10,7 +10,7 @@ cwd = os.getcwd()
 cwd = os.getcwd() 
 datadir = cwd.split('filelists')[0]
 
-data_path = join(datadir,'Datasets/ILSVRC/Data/CLS-LOC/train')
+data_path = join(datadir,'Datasets/ILSVRC2015/Data/CLS-LOC/train')
 savedir = './'
 dataset_list = ['base', 'val', 'novel']
 

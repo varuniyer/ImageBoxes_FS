@@ -1,0 +1,34 @@
+{
+	"bookshop":{},
+	"object":{
+		"electric_guitar":{},
+		"trifle":{},
+		"theater_curtain":{},
+		"school_bus":{},
+		"scoreboard":{},
+		"container":{
+			"hourglass":{},
+			"mixing_bowl":{},
+			"crate":{},
+			"vase":{}
+		},
+		"cuirass":{}
+	},
+	"animal":{
+		"king_crab":{},
+		"mammal":{
+			"canine":{
+				"african_hunting_dog":{},
+				"golden_retriever":{},
+				"dalmatian":{},
+				"malamute":{}
+			},
+			"lion":{},
+			"black-footed_ferret":{}
+		},
+		"bug": {
+			"ant":{},
+			"nematode":{}
+		}
+	}
+}
