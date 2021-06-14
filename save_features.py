@@ -64,20 +64,24 @@ if __name__ == '__main__':
 
 
     split = params.split
-    loadfile = configs.data_dir[params.dataset] + split + '.json'
-
-    checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
+    if params.dataset == 'cross':
+        loadfile = configs.data_dir['CUB'] + split + '.json'
+        checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, 'miniImagenet', params.model, params.method)
+        feature_dir = checkpoint_dir.replace('miniImagenet', params.dataset).replace('checkpoints','features')
+    else:
+        loadfile = configs.data_dir[params.dataset] + split + '.json'
+        checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
+        feature_dir = checkpoint_dir.replace('checkpoints','features')
     
-
     if params.save_iter != -1:
         modelfile   = get_assigned_file(checkpoint_dir,params.save_iter)
     else:
         modelfile   = get_resume_file(checkpoint_dir)
     
     if params.save_iter != -1:
-        outfile = os.path.join( checkpoint_dir.replace("checkpoints","features"), split + "_" + str(params.save_iter)+ ".hdf5") 
+        outfile = feature_dir, split + "_" + str(params.save_iter)+ ".hdf5"
     else:
-        outfile = os.path.join( checkpoint_dir.replace("checkpoints","features"), split + ".hdf5") 
+        outfile = os.path.join( feature_dir, split + ".hdf5") 
 
     datamgr         = SimpleDataManager(image_size, batch_size = 3)
     data_loader      = datamgr.get_data_loader(loadfile, aug = False)
