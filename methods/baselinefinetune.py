@@ -12,8 +12,14 @@ class BaselineFinetune(MetaTemplate):
         super(BaselineFinetune, self).__init__( model_func, n_way, n_support)
         self.loss_type = loss_type
         self.dataset = dataset
+        if dataset in ['miniImagenet', 'cifar']:
+            self.novel_idx = lambda x: x - 80
+            self.typedim = 26
+        elif dataset == 'CUB':
+            self.novel_idx = lambda x: (x - 3) // 4
+            self.typedim = 67
         self.pos_prob = tc.mean()
-        self.tc = torch.cuda.FloatTensor(tc)
+        self.tc = torch.cuda.LongTensor(tc)
         
     def set_forward(self,x,labels,num_classes,is_feature = True):
         return self.set_forward_adaptation(x,labels,num_classes,is_feature); #Baseline always do adaptation
@@ -35,14 +41,14 @@ class BaselineFinetune(MetaTemplate):
         model = linear_clf
         usebox = True
         if usebox:
-            model = backbone.BoxEmbs(self.feat_dim, self.tc.shape[0], labels)
+            model = backbone.BoxEmbs(self.feat_dim, self.typedim, [self.novel_idx(l) for l in labels])
         model = model.cuda()
         set_optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
         img_loss = nn.CrossEntropyLoss().cuda()
         log1mexp_inv = Polynomial.fit([-i/1000 for i in range(1,2000)],[1/np.log(1-np.exp(-i/1000)) for i in range(1,2000)],2)
         log1mexp = lambda x: 1/log1mexp_inv(x)
         def tc_loss(preds):
-            mask = torch.rand(preds.shape) < self.pos_prob
+            mask = torch.rand(preds.shape).cuda() < self.pos_prob
             preds[~self.tc] = (log1mexp(preds) * mask)[~self.tc]
             return -preds.mean()
         support_size = self.n_way * self.n_support
@@ -57,15 +63,18 @@ class BaselineFinetune(MetaTemplate):
                 y_batch = y_support[selected_id]
                 if usebox:
                     img_scores, tc_scores = model(z_batch)
+                    loss = img_loss(img_scores, y_batch) + tc_loss(tc_scores)
                 else:
                     img_scores = model(z_batch)
-                loss = img_loss(img_scores, y_batch)
-                if usebox:
-                    loss += tc_loss(tc_scores)
+                    loss = img_loss(img_scores, y_batch)
                 loss.backward()
                 set_optimizer.step()
             if epoch %100 ==0 and epoch !=0:
-                scores_eval.append(model(z_query))
+                if usebox:
+                    out, _ = model(z_query)
+                else:
+                    out = model(z_query)
+                scores_eval.append(out)
         return scores_eval
 
 

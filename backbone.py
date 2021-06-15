@@ -53,9 +53,6 @@ class PT(nn.Module):
     def forward(self, x):
         x = self.sp(x) ** self.sig(self.beta[0])
         x = x / (x**2).sum(1, keepdim=True).sqrt()
-        #x_min = x[:,:x.shape[1]//2]
-        #x_min = x_min - x_min.mean(0)
-        #x[:,:x.shape[1]//2] = x_min / (x_min**2).sum(1, keepdim=True).sqrt()
         return x
 
 class BoxEmbs(nn.Module):
@@ -78,8 +75,6 @@ class BoxEmbs(nn.Module):
 
     def forward(self, x):
         mins, deltas = self.pt_img(torch.cat([self.fc(x),self.type_emb], 0)).chunk(2,1)
-        #mins, deltas = torch.cat([self.fc(x),self.type_emb], 0).chunk(2,1)
-        #mins, deltas = self.pt_img(mins), self.pt_type(deltas)
         mins = mins - mins.mean(0)
         mins = mins / (mins ** 2).sum(1, keepdim=True).sqrt()
                 
