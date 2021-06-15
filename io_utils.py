@@ -30,29 +30,15 @@ def parse_args(script):
     parser.add_argument('--test_n_way'  , default=5, type=int,  help='class num to classify for testing (validation) ') #baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--n_shot'      , default=5, type=int,  help='number of labeled data in each class, same as n_support') #baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--train_aug'   , action='store_true',  help='perform data augmentation or not during training ') #still required for save_features.py and test.py to find the model path correctly
+    parser.add_argument('--ablation'    , default='',  help='which ablation study to run (sibling or cousin)')
 
-    if script == 'train':
-        parser.add_argument('--num_classes' , default=200, type=int, help='total number of classes in softmax, only used in baseline') #make it larger than the maximum label value in base class
-        parser.add_argument('--save_freq'   , default=10, type=int, help='Save frequency')
-        parser.add_argument('--start_epoch' , default=0, type=int,help ='Starting epoch')
-        parser.add_argument('--stop_epoch'  , default=400, type=int, help ='Stopping epoch') #for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
-        parser.add_argument('--resume'      , action='store_true', help='continue from previous trained model with largest epoch')
-        parser.add_argument('--lr'          , default=0.001, type=int, help='learning rate') 
-        parser.add_argument('--batch_size' , default=16, type=int, help='batch size ')
-        parser.add_argument('--test_batch_size' , default=2, type=int, help='batch size ')
-        parser.add_argument('--alpha'       , default=2.0, type=int, help='for manifold_mixup or S2M2 training ')
-        parser.add_argument('--warmup'      , action='store_true', help='continue from baseline, neglected if resume is true') #never used in the paper
-    elif script == 'save_features':
-        parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
-        parser.add_argument('--save_iter', default=-1, type=int,help ='save feature from the model trained in x epoch, use the best model if x is -1')
-    elif script == 'test':
-        parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
-        parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
-        parser.add_argument('--adaptation'  , action='store_true', help='further adaptation in test time or not')
-    else:
-       raise ValueError('Unknown script')
-        
-
+    parser.add_argument('--num_classes' , default=20, type=int, help='total number of classes in dataset') #make it larger than the maximum label value in base class
+    parser.add_argument('--lr'          , default=0.1, type=int, help='learning rate') 
+    
+    parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
+    parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
+    parser.add_argument('--adaptation'  , action='store_true', help='further adaptation in test time or not')
+    
     return parser.parse_args()
 
 

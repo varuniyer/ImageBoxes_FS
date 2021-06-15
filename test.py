@@ -22,9 +22,24 @@ from methods.relationnet import RelationNet
 from methods.maml import MAML
 from io_utils import model_dict, parse_args, get_resume_file, get_best_file , get_assigned_file
 
-def feature_evaluation(cl_data_file, dist, novel_idx, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
+def feature_evaluation(cl_data_file, ablation, tc, dist, novel_idx, base_idx, num_classes, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
     class_list = cl_data_file.keys()
-    select_class = np.array(random.sample(class_list, n_way))
+    if ablation == 'sibling':
+        cands = np.where((tc*(dist == 1))[:num_classes].sum(0) >= n_way)[0]
+        parent = random.sample(list(cands), 1)
+        cands = np.where(dist[:num_classes,parent] == 1)[0]
+        select_class = base_idx(np.array(random.sample(list(cands), n_way)))
+    elif ablation == 'cousin':
+        select_class = np.zeros(n_way, dtype=np.int64)
+        allowed = np.ones(num_classes, dtype=np.int64)
+        for i in range(n_way):
+            cands = np.where(allowed)[0]
+            select_class[i] = random.sample(list(cands), 1)[0]
+            print(select_class[i])
+            allowed[dist[:num_classes,select_class[i]] < 3] = 0
+        select_class = base_idx(select_class)
+    else:
+        select_class = np.array(random.sample(class_list, n_way))
     z_all  = []
     for cl in select_class:
         img_feat = cl_data_file[cl]
@@ -65,8 +80,12 @@ if __name__ == '__main__':
     distm = np.load('filelists/%s/dist.npy' %(params.dataset))
     if params.dataset in ['miniImagenet','cifar']:
         novel_idx = lambda x: x - 80
+        base_idx = lambda x: x + 80
+        num_classes = 20
     elif params.dataset == 'CUB':
         novel_idx = lambda x: (x - 3) // 4
+        base_idx = lambda x: 4 * x + 3
+        num_classes = 50
     model = BaselineFinetune( model_dict[params.model], tc, novel_idx, **few_shot_params )
 
     if torch.cuda.is_available():
@@ -88,7 +107,7 @@ if __name__ == '__main__':
     print("evaluating over %d examples"%(n_query))
 
     for i in range(iter_num):
-        acc, dist = feature_evaluation(cl_data_file, distm, novel_idx, model, n_query = n_query , adaptation = params.adaptation, **few_shot_params)
+        acc, dist = feature_evaluation(cl_data_file, params.ablation, tc, distm, novel_idx, base_idx, num_classes, model, n_query = n_query , adaptation = params.adaptation, **few_shot_params)
             
         acc_all1.append(acc[0])
         acc_all2.append(acc[1])
