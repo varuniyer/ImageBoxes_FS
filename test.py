@@ -22,9 +22,9 @@ from methods.relationnet import RelationNet
 from methods.maml import MAML
 from io_utils import model_dict, parse_args, get_resume_file, get_best_file , get_assigned_file
 
-def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
+def feature_evaluation(cl_data_file, dist, novel_idx, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
     class_list = cl_data_file.keys()
-    select_class = random.sample(class_list, n_way)
+    select_class = np.array(random.sample(class_list, n_way))
     z_all  = []
     for cl in select_class:
         img_feat = cl_data_file[cl]
@@ -40,11 +40,13 @@ def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 
         scores  = model.set_forward(z_all, select_class, len(class_list), is_feature = True)
     
     acc = []
+    dists = []
     for each_score in scores:
         pred = each_score.data.cpu().numpy().argmax(axis = 1)
         y = np.repeat(range( n_way ), n_query )
         acc.append(np.mean(pred == y)*100 )
-    return acc
+        dists.append(np.mean(dist[novel_idx(select_class[pred]), novel_idx(select_class[y])]))
+    return acc, dists
 
 if __name__ == '__main__':
     params = parse_args('test')
@@ -60,8 +62,12 @@ if __name__ == '__main__':
         params.dataset = 'CUB'
 
     tc = np.load('filelists/%s/tc.npy' %(params.dataset))
-    dist = np.load('filelists/%s/dist.npy' %(params.dataset))
-    model = BaselineFinetune( model_dict[params.model], params.dataset, tc, **few_shot_params )
+    distm = np.load('filelists/%s/dist.npy' %(params.dataset))
+    if params.dataset in ['miniImagenet','cifar']:
+        novel_idx = lambda x: x - 80
+    elif params.dataset == 'CUB':
+        novel_idx = lambda x: (x - 3) // 4
+    model = BaselineFinetune( model_dict[params.model], tc, novel_idx, **few_shot_params )
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -76,17 +82,23 @@ if __name__ == '__main__':
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
+    dist_all1, dist_all2 , dist_all3 = [],[],[]
 
     print(novel_file)
     print("evaluating over %d examples"%(n_query))
 
     for i in range(iter_num):
-        acc = feature_evaluation(cl_data_file, model, n_query = n_query , adaptation = params.adaptation, **few_shot_params)
+        acc, dist = feature_evaluation(cl_data_file, distm, novel_idx, model, n_query = n_query , adaptation = params.adaptation, **few_shot_params)
             
         acc_all1.append(acc[0])
         acc_all2.append(acc[1])
         acc_all3.append(acc[2])
+
+        dist_all1.append(dist[0])
+        dist_all2.append(dist[1])
+        dist_all3.append(dist[2])
         print("%d steps reached and the mean acc is %g , %g , %g"%(i, np.mean(np.array(acc_all1)),np.mean(np.array(acc_all2)),np.mean(np.array(acc_all3)) ))
+        print("%d steps reached and the mean graph dist is %g , %g , %g"%(i, np.mean(np.array(dist_all1)),np.mean(np.array(dist_all2)),np.mean(np.array(dist_all3)) ))
 
     acc_mean1 = np.mean(acc_all1)
     acc_mean2 = np.mean(acc_all2)
@@ -97,3 +109,13 @@ if __name__ == '__main__':
     print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)))
     print('%d Test Acc at 200= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean2, 1.96* acc_std2/np.sqrt(iter_num)))
     print('%d Test Acc at 300= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean3, 1.96* acc_std3/np.sqrt(iter_num)))
+    
+    dist_mean1 = np.mean(dist_all1)
+    dist_mean2 = np.mean(dist_all2)
+    dist_mean3 = np.mean(dist_all3)
+    dist_std1  = np.std(dist_all1)
+    dist_std2  = np.std(dist_all2)
+    dist_std3  = np.std(dist_all3)
+    print('%d Test Graph Dist at 100= %4.2f +- %4.2f' %(iter_num, dist_mean1, 1.96* dist_std1/np.sqrt(iter_num)))
+    print('%d Test Graph Dist at 200= %4.2f +- %4.2f' %(iter_num, dist_mean2, 1.96* dist_std2/np.sqrt(iter_num)))
+    print('%d Test Graph Dist at 300= %4.2f +- %4.2f' %(iter_num, dist_mean3, 1.96* dist_std3/np.sqrt(iter_num)))

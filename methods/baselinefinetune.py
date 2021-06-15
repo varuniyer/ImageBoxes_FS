@@ -8,16 +8,11 @@ from methods.meta_template import MetaTemplate
 from numpy.polynomial import Polynomial
 
 class BaselineFinetune(MetaTemplate):
-    def __init__(self, model_func, dataset, tc, n_way, n_support, loss_type = "dist"):
+    def __init__(self, model_func, tc, novel_idx, n_way, n_support, loss_type = "dist"):
         super(BaselineFinetune, self).__init__( model_func, n_way, n_support)
         self.loss_type = loss_type
-        self.dataset = dataset
-        if dataset in ['miniImagenet', 'cifar']:
-            self.novel_idx = lambda x: x - 80
-            self.typedim = 26
-        elif dataset == 'CUB':
-            self.novel_idx = lambda x: (x - 3) // 4
-            self.typedim = 67
+        self.novel_idx = novel_idx
+        self.typedim = tc.shape[0]
         self.pos_prob = tc.mean()
         self.tc = torch.cuda.LongTensor(tc)
         
@@ -64,6 +59,7 @@ class BaselineFinetune(MetaTemplate):
                 if usebox:
                     img_scores, tc_scores = model(z_batch)
                     loss = img_loss(img_scores, y_batch) + tc_loss(tc_scores)
+                    print(img_loss(img_scores, y_batch).data, tc_loss(tc_scores).data)
                 else:
                     img_scores = model(z_batch)
                     loss = img_loss(img_scores, y_batch)
