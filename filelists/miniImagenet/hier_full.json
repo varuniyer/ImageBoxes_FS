@@ -19,7 +19,7 @@
 	},
 	"accessory":{
 		"lipstick":{},
-		"hair_slide":{},		
+		"hair_slide":{}		
 	},
 	"bar":{
 		"parallel_bars":{},
@@ -27,8 +27,7 @@
 	},
 	"office_supply":{
 		"file":{},		
-		"photocopier":{},
-		""
+		"photocopier":{}
 	},
 	"prayer_rug":{},
 	"street_sign":{},
@@ -53,7 +52,6 @@
 	"hourglass":{},
 	"vehicle":{
 		"school_bus":{},
-		"catamaran"
 		"unicycle":{},
 		"garbage_truck":{},
 		"boat":{

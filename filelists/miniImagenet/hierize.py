@@ -6,17 +6,18 @@ from scipy.sparse import csr_matrix, csgraph
 with open('base.json') as b:
     labels = [int(l[1:]) for l in json.load(b)['label_names']]
 labels = [wn.synset_from_pos_and_offset('n',l).name().split('.')[0] for l in labels][-20:]
-with open('hier.json') as h:
+with open(sys.argv[1]) as h:
     hier = json.load(h)
+    num_types = int(sys.argv[2])
 
-am = np.zeros((27, 27))
+am = np.zeros((num_types, num_types))
 tc = {}
 for k, v in hier.items():
     tc[k] = []
     if k not in labels:
         labels.append(k)
-    am[labels.index(k)][26] = 1
-    am[26][labels.index(k)] = 1
+    am[labels.index(k)][num_types - 1] = 1
+    am[num_types - 1][labels.index(k)] = 1
     for k2, v2 in v.items():
         tc[k].append((k2,1))
         tc[k2] = []
